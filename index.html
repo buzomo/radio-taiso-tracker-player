@@ -297,9 +297,11 @@
         </div>
 
         <div class="video-container">
-            <iframe src="https://www.youtube.com/embed/uuVDradNcUo" frameborder="0"
+            <iframe id="ytplayer" src="https://www.youtube.com/embed/uuVDradNcUo?enablejsapi=1&autoplay=1"
+                frameborder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen></iframe>
+
         </div>
 
         <div class="status-container">
@@ -361,6 +363,10 @@
         document.addEventListener('DOMContentLoaded', function () {
             // GitHub トークン保存
             document.getElementById('saveToken').addEventListener('click', saveGithubToken);
+            if (localStorage.getItem('gh_token')) {
+                document.querySelector('.token-input').style.display = 'none';
+            }
+
 
             // 月の移動ボタンのイベントリスナー
             document.getElementById('prevMonth').addEventListener('click', () => {
@@ -527,7 +533,7 @@
             }
 
             const index = habits.indexOf(dateStr);
-            
+
             if (index === -1) {
                 // 完了としてマーク
                 habits.push(dateStr);
@@ -548,10 +554,10 @@
 
             // GitHubにデータを保存
             saveHabitsToGitHub();
-            
+
             // カレンダーを再描画
             renderCalendar();
-            
+
             // 統計情報を更新
             updateStats();
         }
@@ -597,17 +603,17 @@
 
             // 日付を昇順にソート
             const sortedDates = [...habits].sort();
-            
+
             let maxStreak = 1;
             let currentStreak = 1;
-            
+
             for (let i = 1; i < sortedDates.length; i++) {
-                const prevDate = new Date(sortedDates[i-1]);
+                const prevDate = new Date(sortedDates[i - 1]);
                 const currDate = new Date(sortedDates[i]);
-                
+
                 // 前日の日付かチェック
                 prevDate.setDate(prevDate.getDate() + 1);
-                
+
                 if (prevDate.toISOString().split('T')[0] === sortedDates[i]) {
                     currentStreak++;
                 } else {
@@ -615,7 +621,7 @@
                     currentStreak = 1;
                 }
             }
-            
+
             return Math.max(maxStreak, currentStreak);
         }
 
@@ -624,7 +630,7 @@
             const today = new Date();
             const year = today.getFullYear();
             const month = today.getMonth();
-            
+
             return habits.filter(dateStr => {
                 const habitDate = new Date(dateStr);
                 return habitDate.getFullYear() === year && habitDate.getMonth() === month;
@@ -639,11 +645,11 @@
                         'Authorization': `token ${localStorage.getItem('gh_token')}`
                     }
                 });
-                
+
                 if (!response.ok) {
                     throw new Error('SHA取得エラー');
                 }
-                
+
                 const data = await response.json();
                 return data.sha;
             } catch (error) {
@@ -665,7 +671,7 @@
             try {
                 const sha = await getFileSHA();
                 const content = habits.join('\n');
-                
+
                 const response = await fetch(
                     'https://api.github.com/repos/buzomo/radio-taiso-tracker-player/contents/habits.txt',
                     {
@@ -723,7 +729,28 @@
                 toast.classList.remove("show");
             }, 3000);
         }
+
     </script>
+    <!-- YouTube IFrame APIの読み込み -->
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script>
+        let player;
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('ytplayer', {
+                events: {
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data === YT.PlayerState.ENDED) {
+                markTodayCompleted(); // 再生終了時に自動で完了マーク
+            }
+        }
+    </script>
+
 </body>
 
 </html>
