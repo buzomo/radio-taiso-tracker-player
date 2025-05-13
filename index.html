@@ -27,14 +27,7 @@
             padding: 20px;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding: 10px 0;
-            border-bottom: 2px solid #3498db;
-        }
+
 
         h1 {
             font-size: 2rem;
@@ -292,9 +285,6 @@
 
 <body>
     <div class="container">
-        <div class="header">
-            <h1>ラジオ体操トラッカー</h1>
-        </div>
 
         <div class="video-container">
             <iframe id="ytplayer" src="https://www.youtube.com/embed/uuVDradNcUo?enablejsapi=1&autoplay=1"
@@ -319,7 +309,6 @@
             </div>
         </div>
 
-        <button id="markCompleted" class="action-button mark-done">今日の体操を完了としてマーク</button>
 
         <div class="calendar-container">
             <div class="calendar-header">
@@ -378,9 +367,6 @@
                 currentDate.setMonth(currentDate.getMonth() + 1);
                 renderCalendar();
             });
-
-            // 完了ボタンのイベントリスナー
-            document.getElementById('markCompleted').addEventListener('click', markTodayCompleted);
 
             // 習慣データを読み込む
             loadHabits();
