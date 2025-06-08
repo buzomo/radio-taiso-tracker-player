@@ -2,7 +2,7 @@
 <html lang="ja">
 
 <head>
-        <style>
+    <style>
         * {
             box-sizing: border-box;
             margin: 0;
@@ -248,7 +248,7 @@
             opacity: 1;
         }
 
-     
+
         /* レスポンシブデザイン */
         @media (max-width: 768px) {
             .container {
@@ -274,9 +274,10 @@
                 width: 100%;
             }
         }
+
         .statscalendar {
-         max-width: 600px;
-        margin: 0 auto;
+            max-width: 600px;
+            margin: 0 auto;
         }
 
         .data-management {
@@ -328,8 +329,7 @@
 
     <div class="container">
         <div class="video-container">
-            <iframe id="ytplayer" src="https://www.youtube.com/embed/uuVDradNcUo?enablejsapi=1&autoplay=1"
-                frameborder="0"
+            <iframe id="ytplayer" src="https://www.youtube.com/embed/uuVDradNcUo?enablejsapi=1&autoplay=1&rel=0&controls=0" frameborder="0"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen></iframe>
         </div>
@@ -382,13 +382,8 @@
     </div>
     <div id="toast"></div>
     <script>
-        // グローバル変数
-        let currentDate = new Date();
-        let habits = [];
-
-        // DOM要素の読み込み後に実行
-        document.addEventListener('DOMContentLoaded', function () {
-            // 月の移動ボタンのイベントリスナー
+        let currentDate = new Date(), habits = [];
+        document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('prevMonth').addEventListener('click', () => {
                 currentDate.setMonth(currentDate.getMonth() - 1);
                 renderCalendar();
@@ -397,262 +392,141 @@
                 currentDate.setMonth(currentDate.getMonth() + 1);
                 renderCalendar();
             });
-
-            // インポート/エクスポートボタンのイベントリスナー
             document.getElementById('exportData').addEventListener('click', exportHabits);
-            document.getElementById('importData').addEventListener('click', () => {
-                document.getElementById('fileInput').click();
-            });
+            document.getElementById('importData').addEventListener('click', () => document.getElementById('fileInput').click());
             document.getElementById('fileInput').addEventListener('change', importHabits);
-
-            // 習慣データを読み込む
             loadHabits();
-            // カレンダーを描画
             renderCalendar();
         });
 
-        // 習慣データの読み込み
-        function loadHabits() {
-            const savedHabits = localStorage.getItem('habits');
-            if (savedHabits) {
-                habits = JSON.parse(savedHabits);
-            } else {
-                habits = [];
-            }
+        const loadHabits = () => {
+            habits = JSON.parse(localStorage.getItem('habits') || '[]');
             renderCalendar();
             updateStats();
         }
 
-        // 習慣データの保存
-        function saveHabits() {
+        const saveHabits = () => {
             localStorage.setItem('habits', JSON.stringify(habits));
             renderCalendar();
             updateStats();
         }
 
-        // データのエクスポート
-        function exportHabits() {
-            const data = {
-                habits: habits,
-                exportDate: new Date().toISOString()
-            };
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
+        const exportHabits = () => {
             const a = document.createElement('a');
-            a.href = url;
+            a.href = URL.createObjectURL(new Blob([JSON.stringify({habits, exportDate: new Date().toISOString()}, null, 2)], {type: 'application/json'}));
             a.download = `radio-taiso-data-${formatDate(new Date())}.json`;
-            document.body.appendChild(a);
             a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
             showToast('データを出力しました');
         }
 
-        // データのインポート
-        function importHabits(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = function(e) {
+        const importHabits = (e) => {
+            const r = new FileReader();
+            r.onload = (e) => {
                 try {
-                    const data = JSON.parse(e.target.result);
-                    if (Array.isArray(data.habits)) {
-                        habits = data.habits;
+                    const d = JSON.parse(e.target.result);
+                    if (Array.isArray(d.habits)) {
+                        habits = d.habits;
                         saveHabits();
                         showToast('データを取り込みました');
-                    } else {
-                        throw new Error('Invalid data format');
                     }
-                } catch (error) {
+                } catch (e) {
                     showToast('データの取り込みに失敗しました');
-                    console.error('Import error:', error);
                 }
             };
-            reader.readAsText(file);
-            event.target.value = ''; // ファイル入力をリセット
+            r.readAsText(e.target.files[0]);
+            e.target.value = '';
         }
 
-        // カレンダーの描画
-        function renderCalendar() {
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            // 月の表示を更新
-            document.getElementById('monthDisplay').textContent = `${year}年${month + 1}月`;
-            // カレンダー本体の生成
-            const calendarBody = document.getElementById('calendarBody');
-            calendarBody.innerHTML = '';
-            // 月の最初の日の曜日（0: 日曜日, 1: 月曜日, ..., 6: 土曜日）
-            const firstDay = new Date(year, month, 1).getDay();
-            // 月の日数
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            // 前月の日数
-            const daysInPrevMonth = new Date(year, month, 0).getDate();
-            // 現在の日付
-            const today = new Date();
-            const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
-            let date = 1;
-            let nextMonthDate = 1;
-            // カレンダーの行を生成
-            for (let i = 0; i < 6; i++) {
-                // 6週間分のカレンダーを作成（場合によっては不要な週もある）
-                const row = document.createElement('tr');
+        const renderCalendar = () => {
+            const y = currentDate.getFullYear(), m = currentDate.getMonth();
+            document.getElementById('monthDisplay').textContent = `${y}年${m + 1}月`;
+            const b = document.getElementById('calendarBody');
+            b.innerHTML = '';
+            const fd = new Date(y, m, 1).getDay();
+            const dm = new Date(y, m + 1, 0).getDate();
+            const dp = new Date(y, m, 0).getDate();
+            const t = new Date();
+            const cm = t.getFullYear() === y && t.getMonth() === m;
+            let d = 1, n = 1;
+            for (let i = 0; i < 6 && (d <= dm || i < 4); i++) {
+                const r = document.createElement('tr');
                 for (let j = 0; j < 7; j++) {
-                    const cell = document.createElement('td');
-                    if (i === 0 && j < firstDay) {
-                        // 前月の日付
-                        const prevMonthDay = daysInPrevMonth - (firstDay - j - 1);
-                        cell.textContent = prevMonthDay;
-                        cell.className = 'other-month';
-                    } else if (date > daysInMonth) {
-                        // 翌月の日付
-                        cell.textContent = nextMonthDate;
-                        cell.className = 'other-month';
-                        nextMonthDate++;
+                    const c = document.createElement('td');
+                    if (i === 0 && j < fd) {
+                        c.textContent = dp - (fd - j - 1);
+                        c.className = 'other-month';
+                    } else if (d > dm) {
+                        c.textContent = n++;
+                        c.className = 'other-month';
                     } else {
-                        // 当月の日付
-                        cell.textContent = date;
-                        // 今日の日付をハイライト
-                        if (isCurrentMonth && date === today.getDate()) {
-                            cell.classList.add('today');
-                        }
-                        // 完了した日付にマークを付ける
-                        const dateStr = formatDate(new Date(year, month, date));
-                        if (habits.includes(dateStr)) {
-                            cell.classList.add('completed');
-                        }
-                        // 日付のクリックイベント
-                        cell.addEventListener('click', () => toggleHabit(new Date(year, month, date)));
-                        date++;
+                        c.textContent = d;
+                        if (cm && d === t.getDate()) c.classList.add('today');
+                        if (habits.includes(formatDate(new Date(y, m, d)))) c.classList.add('completed');
+                        d++;
                     }
-                    row.appendChild(cell);
+                    r.appendChild(c);
                 }
-                calendarBody.appendChild(row);
-                // 月の全ての日付が表示されたら、残りの行は表示しない
-                if (date > daysInMonth && i >= 3) {
-                    break;
-                }
+                b.appendChild(r);
             }
         }
 
-        // 日付のフォーマット（YYYY-MM-DD）
-        function formatDate(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
+        const formatDate = d => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-        // 今日の習慣を完了としてマーク
-        function markTodayCompleted() {
-            const today = new Date();
-            toggleHabit(today);
-        }
-
-        // 習慣の切り替え
-        function toggleHabit(date) {
-            const dateStr = formatDate(date);
-            const today = new Date();
-            const todayStr = formatDate(today);
-            // 今日または過去の日付のみ切り替え可能
-            if (date > today) {
-                showToast('未来の日付は記録できません');
-                return;
+        const markTodayCompleted = () => {
+            const t = formatDate(new Date());
+            if (!habits.includes(t)) {
+                habits.push(t);
+                showToast('今日のラジオ体操を完了しました！');
+                saveHabits();
             }
-            const index = habits.indexOf(dateStr);
-            if (index === -1) {
-                // 完了としてマーク
-                habits.push(dateStr);
-                if (dateStr === todayStr) {
-                    showToast('今日のラジオ体操を完了しました！');
-                } else {
-                    showToast(`${dateStr} のラジオ体操を完了しました！`);
-                }
-            } else {
-                // 完了マークを解除
-                habits.splice(index, 1);
-                if (dateStr === todayStr) {
-                    showToast('今日のラジオ体操を未完了に戻しました');
-                } else {
-                    showToast(`${dateStr} のラジオ体操を未完了に戻しました`);
-                }
-            }
-            // データを保存
-            saveHabits();
         }
 
-        // 統計情報の更新
-        function updateStats() {
-            const currentStreak = calculateCurrentStreak();
-            const longestStreak = calculateLongestStreak();
-            const monthlyCount = calculateMonthlyCount();
-            document.getElementById('currentStreak').textContent = `${currentStreak}日`;
-            document.getElementById('longestStreak').textContent = `${longestStreak}日`;
-            document.getElementById('monthlyCount').textContent = `${monthlyCount}回`;
+        const updateStats = () => {
+            document.getElementById('currentStreak').textContent = `${calculateCurrentStreak()}日`;
+            document.getElementById('longestStreak').textContent = `${calculateLongestStreak()}日`;
+            document.getElementById('monthlyCount').textContent = `${calculateMonthlyCount()}回`;
         }
 
-        // 現在の連続記録を計算
-        function calculateCurrentStreak() {
-            const today = new Date();
-            let streak = 0;
-            let currentDate = new Date(today);
-            // 今日が完了していない場合は昨日から数える
-            if (!habits.includes(formatDate(today))) {
-                currentDate.setDate(currentDate.getDate() - 1);
+        const calculateCurrentStreak = () => {
+            const t = new Date();
+            let s = 0, c = new Date(t);
+            if (!habits.includes(formatDate(t))) c.setDate(c.getDate() - 1);
+            while (habits.includes(formatDate(c))) {
+                s++;
+                c.setDate(c.getDate() - 1);
             }
-            while (true) {
-                const dateStr = formatDate(currentDate);
-                if (habits.includes(dateStr)) {
-                    streak++;
-                    currentDate.setDate(currentDate.getDate() - 1);
-                } else {
-                    break;
+            return s;
+        }
+
+        const calculateLongestStreak = () => {
+            if (!habits.length) return 0;
+            const s = [...habits].sort();
+            let m = 1, c = 1;
+            for (let i = 1; i < s.length; i++) {
+                const p = new Date(s[i - 1]);
+                p.setDate(p.getDate() + 1);
+                if (p.toISOString().split('T')[0] === s[i]) c++;
+                else {
+                    m = Math.max(m, c);
+                    c = 1;
                 }
             }
-            return streak;
+            return Math.max(m, c);
         }
 
-        // 最長連続記録を計算
-        function calculateLongestStreak() {
-            if (habits.length === 0) return 0;
-            // 日付を昇順にソート
-            const sortedDates = [...habits].sort();
-            let maxStreak = 1;
-            let currentStreak = 1;
-            for (let i = 1; i < sortedDates.length; i++) {
-                const prevDate = new Date(sortedDates[i - 1]);
-                const currDate = new Date(sortedDates[i]);
-                // 前日の日付かチェック
-                prevDate.setDate(prevDate.getDate() + 1);
-                if (prevDate.toISOString().split('T')[0] === sortedDates[i]) {
-                    currentStreak++;
-                } else {
-                    maxStreak = Math.max(maxStreak, currentStreak);
-                    currentStreak = 1;
-                }
-            }
-            return Math.max(maxStreak, currentStreak);
-        }
-
-        // 今月の実施回数を計算
-        function calculateMonthlyCount() {
-            const today = new Date();
-            const year = today.getFullYear();
-            const month = today.getMonth();
-            return habits.filter(dateStr => {
-                const habitDate = new Date(dateStr);
-                return habitDate.getFullYear() === year && habitDate.getMonth() === month;
+        const calculateMonthlyCount = () => {
+            const t = new Date();
+            return habits.filter(d => {
+                const h = new Date(d);
+                return h.getFullYear() === t.getFullYear() && h.getMonth() === t.getMonth();
             }).length;
         }
 
-        // トースト表示
-        function showToast(message) {
-            const toast = document.getElementById("toast");
-            toast.textContent = message;
-            toast.classList.add("show");
-            setTimeout(() => {
-                toast.classList.remove("show");
-            }, 3000);
+        const showToast = m => {
+            const t = document.getElementById("toast");
+            t.textContent = m;
+            t.classList.add("show");
+            setTimeout(() => t.classList.remove("show"), 3000);
         }
     </script>
     <!-- YouTube IFrame APIの読み込み -->
@@ -661,16 +535,12 @@
         let player;
         function onYouTubeIframeAPIReady() {
             player = new YT.Player('ytplayer', {
-                events: {
-                    'onStateChange': onPlayerStateChange
-                }
+                events: {'onStateChange': e => {if (e.data === YT.PlayerState.ENDED) markTodayCompleted()}}
             });
         }
-        function onPlayerStateChange(event) {
-            if (event.data === YT.PlayerState.ENDED) {
-                markTodayCompleted(); // 再生終了時に自動で完了マーク
-            }
-        }
+        document.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => document.querySelector(".ytp-large-play-button").click(), 1000);
+        });
     </script>
 
 </body>
